@@ -54,32 +54,3 @@ CONTAINER ID   IMAGE         COMMAND    CREATED          STATUS                 
 C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker rmi a0dfb02aac21
 Untagged: hello-world:latest
 Deleted: sha256:a0dfb02aac212703bfcb339d77d47ec32c8706ff250850ecc0e19c8737b18567
-
-Excercice 4 
-
-C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker pull nginx
-Using default tag: latest
-latest: Pulling from library/nginx
-716cdf61af59: Pulling fs layer
-c3741b707ce6: Pulling fs layer                                                                                       
-e5d9bb0b85cc: Pull complete
-14e422fd20a0: Pull complete
-b1badc6e5066: Pull complete
-14a859b5ba24: Pull complete
-a2da0c0f2353: Pull complete
-Digest: sha256:33e0bbc7ca9ecf108140af6288c7c9d1ecc77548cbfd3952fd8466a75edefe57
-Status: Downloaded newer image for nginx:latest
-docker.io/library/nginx:latest
-
-C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker run -d -p 8080:80 --name mon_nginx nginx
-fdbab775bcdb3370eebe02a58981e63f1ef29bf56da542fca9322bc37d4714cb
-
-C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker ps
-CONTAINER ID   IMAGE     COMMAND                  CREATED              STATUS              PORTS                                     NAMES  
-fdbab775bcdb   nginx     "/docker-entrypoint.…"   About a minute ago   Up About a minute   0.0.0.0:8080->80/tcp, [::]:8080->80/tcp   mon_nginx
-
-C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker stop mon_nginx
-mon_nginx
-
-C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker rm mon_nginx
-mon_nginx
