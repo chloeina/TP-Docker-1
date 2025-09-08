@@ -83,3 +83,10 @@ mon_nginx
 
 C:\Users\henry\Documents\MIAGE\intégration\TP-integration> docker rm mon_nginx
 mon_nginx
+
+C:\Users\henry\Documents\MIAGE\intégration\TP-integration\TP Docker> docker images
+REPOSITORY         TAG       IMAGE ID       CREATED          SIZE
+tpdocker-web       latest    8a7b4d0182ff   39 minutes ago   212MB
+flask-docker-app   latest    5a9439585334   47 minutes ago   200MB
+mongo              6         95ec2fde0ea4   10 days ago      1.05GB
+nginx              latest    33e0bbc7ca9e   3 weeks ago      279MB
