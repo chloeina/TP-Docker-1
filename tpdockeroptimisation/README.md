@@ -36,3 +36,33 @@ USER root => laisser le serveur tourner en root peut avoir des attaques potentie
 CMD ["node", "server.js"] => peu flexible
 
 # Mauvaises pratiques & améliorations du fichier server.js
+
+1ère 
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+}); => pas de gestion de niveau de log & pas de gestion des erreurs
+
+2ème 
+if (fs.existsSync(filePath)) {
+  const data = fs.readFileSync(filePath, 'utf8');
+  res.send(data.replace(/\n/g, '<br/>'));
+} => blocage du thread : existSync et readFileSync sont synchrones donc chaque requête bloque la boucle d'évènements
+
+3ème 
+res.send(data.replace(/\n/g, '<br/>')); => risque de problèmes de sécurité si le contenu affiché est non échappé
+
+4ème
+fs.readFileSync => si ça plante, l’application crashe
+
+5ème
+pas de séparation dev/prod => le logger, le message en dur et le comportement ne changent pas selon l’environnement
+
+6ème 
+pas de header de sécurité => Express n'active pas de protections basiques par défaut
+
+7ème
+const PORT = process.env.PORT || 3000; => port en clair dans le code
+
+8ème
+pas de gestion de la montée en charge => le code tourne en single-thread
