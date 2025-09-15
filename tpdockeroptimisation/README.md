@@ -30,20 +30,38 @@ rajouter COPY ...
 4ème mauvaise pratique
 RUN apt-get update && apt-get install -y build-essential ca-certificates locales => l'image est plus lourde
 
+solution 
+changer par RUN apk add --no-cache ca-certificates
+
 5ème
 EXPOSE 3000 4000 5000 => inutile d'en avoir 3
+
+solution 
+en choisir qu'un seul => 3000
 
 6ème
 ENV NODE_ENV=development => rique de performance et de sécurité
 
+solution
+remplacer development par production car on est en production
+
 7ème
 RUN npm run build => gros risque de sécurité
+
+solution
+on le retire
 
 8ème 
 USER root => laisser le serveur tourner en root peut avoir des attaques potentielle malveillantes
 
+solution
+créer un utilisateur non root
+
 9ème 
 CMD ["node", "server.js"] => peu flexible
+
+solution
+changer "server.js" => "dist/server.js"
 
 # Mauvaises pratiques & améliorations du fichier server.js
 
@@ -52,6 +70,9 @@ app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
 }); => pas de gestion de niveau de log & pas de gestion des erreurs
+
+solution 
+ajout de constante morgan et helmet et réécriture du code pour la sécurité et les logs en plus cours
 
 2ème 
 if (fs.existsSync(filePath)) {
@@ -65,6 +86,9 @@ utiliser une version asynchrone => fs.promises.readFile
 3ème 
 res.send(data.replace(/\n/g, '<br/>')); => risque de problèmes de sécurité si le contenu affiché est non échappé
 
+solution
+utilisation de stream.pipe(res) pour les gros fichiers
+
 4ème
 fs.readFileSync => si ça plante, l’application crashe
 
@@ -74,14 +98,26 @@ gérer les erreurs avec try/catch => dans app.get('/big', async (req, res) => {}
 5ème
 pas de séparation dev/prod => le logger, le message en dur et le comportement ne changent pas selon l’environnement
 
+solution 
+adapter avec NODE_ENV
+
 6ème 
 pas de header de sécurité => Express n'active pas de protections basiques par défaut
+
+solution
+ajouter helmet
 
 7ème
 const PORT = process.env.PORT || 3000; => port en clair dans le code
 
+solution
+il faudrait séparer la configuration
+
 8ème
 pas de gestion de la montée en charge => le code tourne en single-thread
+
+soltuion 
+utiliser un gestionnaire de processus Docker
 
 
 # Mesure et comparaison des performances
@@ -91,3 +127,28 @@ mon-app            etape2    7cbfbb2bdc99   2 hours ago   1.57GB
 mon-app            initial   59e708ea75d9   2 hours ago   1.73GB
 
 suite aux motifications des trois premières mauvaise pratique et aux modifications des pratiques 2 et 4, on peut appercevoir que la taille de l'image est un peu plus petite donc demande moins de ressources.
+
+# Optimisations avancées
+mon-app            etape3    076785c2c906   11 seconds ago   1.47GB
+mon-app            etape2    7cbfbb2bdc99   3 hours ago      1.57GB
+mon-app            initial   59e708ea75d9   3 hours ago      1.73GB
+
+comme on peut le voir, la taille de l'image continu à diminuer grâce aux modifications faites
+
+docker run --rm williamyeh/wrk -t4 -c100 -d10s http://host.docker.internal:3000/
+Running 10s test @ http://host.docker.internal:3000/
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    84.17ms  153.47ms   2.00s    96.89%
+    Req/Sec   381.83     84.99   500.00     75.75%
+  15382 requests in 9.85s, 13.39MB read
+  Socket errors: connect 0, read 0, write 0, timeout 117
+Requests/sec:   1560.84
+Transfer/sec:      1.36MB
+
+l'application supporte les 100 connexions simultanées. le temps de latence est raisonnables. les timeout indiquent que des threadq ont été chargés
+
+docker exec -it mon-app-etape3 whoami
+app
+
+on peut également voir que ce n'est pas l'utilisateur root mais app

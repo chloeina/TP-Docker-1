@@ -1,20 +1,17 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
-
+const morgan = require('morgan');
+const helmet = require('helmet');
 
 const app = express();
 
+app.use(helmet());
 
-// Middleware verbeux et un peu inutile
-app.use((req, res, next) => {
-console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
-next();
-});
-
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
 app.get('/', (req, res) => {
-res.send('Hello world — serveur volontairement non optimisé mais fonctionnel');
+res.send('Hello world — serveur optimisé fonctionnel');
 });
 
 
