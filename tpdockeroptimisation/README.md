@@ -152,3 +152,102 @@ docker exec -it mon-app-etape3 whoami
 app
 
 on peut également voir que ce n'est pas l'utilisateur root mais app
+
+# Optimisation de gros fichiers
+docker run -d -p 3000:3000 --name mon-app-etape4 mon-app:etape4
+81e7b429165770268e88087082e7eff58070cca9dac3c7d7511927a0482a607b
+
+rebuild de l'image 4 
+
+docker exec -it mon-app-etape4 sh
+$ ls /app
+Dockerfile  maybe-big-file.txt  package-lock.json  server.js
+README.md   node_modules        package.json
+
+vérifie que le fichier est bien copié dans l'image Docker
+
+docker images | findstr mon-app
+mon-app            etape4    18696f5e0d8a   15 minutes ago   1.47GB
+mon-app            etape3    076785c2c906   19 hours ago     1.47GB
+mon-app            etape2    7cbfbb2bdc99   22 hours ago     1.57GB
+mon-app            initial   59e708ea75d9   22 hours ago     1.73GB
+
+on peut voir que la taille de l'image a nettement réduite de l'image initial à l'image 4.
+cependant, la taille n'a pas différée entre l'image 3 et 4.
+
+(Invoke-WebRequest -Uri "http://localhost:3000/" -Headers @{ "Accept-Encoding"="gzip" }).Headers                                                                                        
+Key                               Value
+---                               -----
+Content-Security-Policy           default-src 'self';base-uri 'self';font-src 'self' https: d... 
+Cross-Origin-Opener-Policy        same-origin
+Cross-Origin-Resource-Policy      same-origin
+Origin-Agent-Cluster              ?1
+Referrer-Policy                   no-referrer
+Strict-Transport-Security         max-age=31536000; includeSubDomains
+X-Content-Type-Options            nosniff
+X-DNS-Prefetch-Control            off
+X-Download-Options                noopen
+X-Frame-Options                   SAMEORIGIN
+X-Permitted-Cross-Domain-Policies none
+X-XSS-Protection                  0
+Vary                              Accept-Encoding
+Connection                        keep-alive
+Keep-Alive                        timeout=5
+Content-Length                    45
+Content-Type                      text/html; charset=utf-8
+Date                              Tue, 16 Sep 2025 16:10:56 GMT
+ETag                              W/"2d-sFgRk0YfyGW18BUVJVxlEST9AgE"
+
+objectif : route qui sert à tester le serveur avec un gros fichier.
+pour vérifier que la compression gzip fonctionne dans ton serveur Express, teste la commande
+en ajoutant maybe-big-file.txt dans le projet =>
+ça test la compression gzip sur un fichier volumineux.
+ça mesure l’impact sur le débit (Transfer/sec) et la latence avec wrk.
+
+docker stats mon-app-etape4
+CONTAINER ID   NAME             CPU %     MEM USAGE / LIMIT     MEM %     NET I/O          BLOCK I/O    PIDS
+a3585228ef1e   mon-app-etape4   0.00%     12.89MiB / 7.578GiB   0.17%     3.9kB / 3.67kB   291kB / 0B   7
+
+docker stats mon-app-etape3
+CONTAINER ID   NAME             CPU %     MEM USAGE / LIMIT   MEM %     NET I/O   BLOCK I/O   PIDS
+8c29f3c4cfdd   mon-app-etape3   0.00%     0B / 0B             0.00%     0B / 0B   0B / 0B     0
+
+on peut voir que l'image 4 consomme peu de mémoire mais l'image 3 ne retourne pas sa consommation
+
+Test de débit image étape 3 : 
+docker run --rm williamyeh/wrk -t4 -c100 -d10s http://host.docker.internal:3000/
+Running 10s test @ http://host.docker.internal:3000/
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    84.17ms  153.47ms   2.00s    96.89%
+    Req/Sec   381.83     84.99   500.00     75.75%
+  15382 requests in 9.85s, 13.39MB read
+  Socket errors: connect 0, read 0, write 0, timeout 117
+Requests/sec:   1560.84
+Transfer/sec:      1.36MB
+
+Test de débit image étape 4 : 
+docker run --rm williamyeh/wrk -t4 -c100 -d10s http://host.docker.internal:3000/
+Running 10s test @ http://host.docker.internal:3000/
+  4 threads and 100 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency   125.88ms  130.49ms   1.88s    96.24%
+    Req/Sec   173.99     82.32   424.00     65.97%
+  6653 requests in 10.20s, 5.94MB read
+  Socket errors: connect 0, read 0, write 0, timeout 52
+Requests/sec:    652.28
+Transfer/sec:    596.22KB
+
+le débit Transfer/sec a baissé (gzip envoie moins de données).
+mais le nombre de requêtes/sec est plus faible (la compression a un coût CPU).
+
+
+# Synthèse
+le serveur est bien optimisé et bien fonctionnel (voir photo).
+Après optimisation progressive du Dockerfile et du code Express, on constate :
+Une réduction de la taille des images Docker (1.73 GB → 1.47 GB).
+Une réduction de la consommation mémoire (≈13 MB en étape 4).
+L’ajout de Helmet pour la sécurité (en-têtes HTTP visibles).
+L’application ne tourne plus en root, mais avec un utilisateur dédié.
+L’activation de la compression gzip, qui réduit la bande passante utilisée (Transfer/sec divisé par 2).
+Cependant, la compression entraîne une latence plus élevée et moins de requêtes/sec, ce qui illustre le compromis classique entre performance brute et efficacité réseau.

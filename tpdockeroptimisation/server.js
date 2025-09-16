@@ -3,10 +3,13 @@ const fs = require('fs');
 const path = require('path');
 const morgan = require('morgan');
 const helmet = require('helmet');
+const compression = require('compression');
 
 const app = express();
 
 app.use(helmet());
+
+app.use(compression());
 
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 
